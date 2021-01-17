@@ -50,3 +50,4 @@ begin
 end
 
 exec U_First_Time_Fill_User_rating_fact;
+
