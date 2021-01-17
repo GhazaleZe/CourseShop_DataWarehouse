@@ -59,7 +59,7 @@ GO
 
 exec S_Fill_User_Dim
 
-CREATE Function S_Make_TimeKey (
+CREATE Or Alter Function S_Make_TimeKey (
 @passdate DATETIME
 )
 returns nvarchar(255)
@@ -88,7 +88,7 @@ END
 GO
 
 declare @t Datetime;
- set @t = (select top 1 FullDateAlternateKey from dbo.Date_Dim);
-select dbo.Make_TimeKey (@t)  
+ set @t = (select top 1 FullDateAlternateKey from dbo.S_Dim_Date);
+select dbo.S_Make_TimeKey (@t)  
 
 select * from Date_Dim
