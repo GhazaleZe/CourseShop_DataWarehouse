@@ -68,7 +68,7 @@ begin
 		begin
 			insert into DataWarehouse.dbo.U_user_rating_temp([user_id],course_id,course_key,time_key,full_time,rating) 
 			select staging_area.dbo.UserOnlineCourse.[user_id] ,staging_area.dbo.UserOnlineCourse.course_id , 
-			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.UserOnlineCourse.course_id),
+			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.UserOnlineCourse.course_id and ((price_starting_date<@passing) and ((@passing< price_starting_date ) or (price_end_date IS NULL)))),
 			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.UserOnlineCourse.datetime_of_rating)) ,convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating) , staging_area.dbo.UserOnlineCourse.rating_num
 			from staging_area.dbo.UserOnlineCourse
 			where convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating)= @passing;
@@ -97,13 +97,14 @@ select * from U_UsersMart_log;
 
 truncate table U_UsersMart_log;
 
+select * from S_Dim_Course
 
 -- *******************************************************
 
 CREATE or Alter PROCEDURE U_Fill_User_rating_fact @today Date
 as
 begin
-	declare @lastInFact Datetime;
+	declare @lastInFact Date;
 	set @lastInFact = (select max(DataWarehouse.dbo.U_Fact_UserRating.full_time) from DataWarehouse.dbo.U_Fact_UserRating);
 	declare @passing Datetime;
 	--declare @today Datetime;
