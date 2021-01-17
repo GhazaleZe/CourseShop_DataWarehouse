@@ -39,7 +39,7 @@ create table U_UsersMart_log
 	[action] nvarchar(50)
 );
 
-select * from U_Fact_UserRating;
+select [user_id],course_id,course_key,time_key,full_time,rating from U_Fact_UserRating order by [user_id];
 Select * from S_Dim_Date
 select * from U_user_rating_temp
 
@@ -56,10 +56,11 @@ begin
 	declare @timekey nvarchar(255);
 	set @passing = @first_day_v;
 	set @today =convert(date,GETDATE());
+	--select @passing,@today
 	while @today> @passing
 	begin
 
-		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @today))
+		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @passing))
 		begin
 			set @passing=dateadd(day,1,@passing);
 		end
@@ -68,7 +69,7 @@ begin
 		begin
 			insert into DataWarehouse.dbo.U_user_rating_temp([user_id],course_id,course_key,time_key,full_time,rating) 
 			select staging_area.dbo.UserOnlineCourse.[user_id] ,staging_area.dbo.UserOnlineCourse.course_id , 
-			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.UserOnlineCourse.course_id and ((price_starting_date<@passing) and ((@passing< price_starting_date ) or (price_end_date IS NULL)))),
+			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.UserOnlineCourse.course_id ),
 			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.UserOnlineCourse.datetime_of_rating)) ,convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating) , staging_area.dbo.UserOnlineCourse.rating_num
 			from staging_area.dbo.UserOnlineCourse
 			where convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating)= @passing;
@@ -114,7 +115,7 @@ begin
 	while (@today> convert (date,@passing))
 	begin
 
-		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where convert(date, DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey) = convert(date,@today)))
+		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = convert(date,@today)))
 		begin
 			set @passing=dateadd(day,1,@passing);
 		end
@@ -147,13 +148,6 @@ end
 
 exec U_Fill_User_rating_fact @today = '2020-12-20';
 
-
-insert into DataWarehouse.dbo.U_user_rating_temp([user_id],course_id,course_key,time_key,full_time,rating) 
-			select staging_area.dbo.UserOnlineCourse.[user_id] ,staging_area.dbo.UserOnlineCourse.course_id , 
-			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.UserOnlineCourse.course_id and ((price_starting_date<'2020-12-15') and (('2020-12-15'< price_starting_date ) or (price_end_date IS NULL)))),
-			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.UserOnlineCourse.datetime_of_rating)) ,convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating) , staging_area.dbo.UserOnlineCourse.rating_num
-			from staging_area.dbo.UserOnlineCourse
-			where convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating)= '2020-12-15';
 
 
 
