@@ -107,15 +107,15 @@ as
 begin
 	declare @lastInFact Date;
 	set @lastInFact = (select max(DataWarehouse.dbo.U_Fact_UserRating.full_time) from DataWarehouse.dbo.U_Fact_UserRating);
-	declare @passing Datetime;
+	declare @passing Date;
 	--declare @today Datetime;
 	declare @timekey nvarchar(255);
 	set @passing = dateadd(day,1,@lastInFact);
 	--set @today =GETDATE();
-	while (@today> convert (date,@passing))
+	while (@today> @passing)
 	begin
 
-		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = convert(date,@today)))
+		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @today))
 		begin
 			set @passing=dateadd(day,1,@passing);
 		end
@@ -127,7 +127,7 @@ begin
 			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.UserOnlineCourse.course_id),
 			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.UserOnlineCourse.datetime_of_rating)) ,staging_area.dbo.UserOnlineCourse.datetime_of_rating , staging_area.dbo.UserOnlineCourse.rating_num
 			from staging_area.dbo.UserOnlineCourse
-			where convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating)= convert (date,@passing);
+			where convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating)= @passing;
 
 			insert into DataWarehouse.dbo.U_Fact_UserRating([user_id],course_id,course_key,time_key,full_time,rating) 
 			select [user_id],course_id,course_key,time_key,full_time,rating from DataWarehouse.dbo.U_user_rating_temp;
