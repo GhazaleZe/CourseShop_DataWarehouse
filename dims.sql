@@ -16,7 +16,6 @@ create table [S_Dim_User]
 	date_of_birth DATE,
 )
 
-
 CREATE or alter PROCEDURE S_First_Time_Fill_User_Dim
 AS
 BEGIN
@@ -90,5 +89,3 @@ GO
 declare @t Datetime;
  set @t = (select top 1 FullDateAlternateKey from dbo.S_Dim_Date);
 select dbo.S_Make_TimeKey (@t)  
-
-select * from Date_Dim
