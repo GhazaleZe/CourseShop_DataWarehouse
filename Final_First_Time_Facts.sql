@@ -54,6 +54,7 @@ exec U_First_Time_Fill_User_rating_fact;
 --*******************************************************************************
 
 
+
 CREATE or Alter PROCEDURE U_First_Time_Fill_U_Fact_Comments @first_day_v Date,@today Date 
 as
 begin
@@ -61,7 +62,7 @@ begin
 	declare @passing Date;
 	declare @timekey nvarchar(255);
 	set @passing = @first_day_v;
-	while @today> @passing
+	while @today>= @passing
 	begin
 
 		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @passing))
@@ -96,11 +97,10 @@ begin
 end 
 
 
-exec  U_First_Time_Fill_U_Fact_Comments @first_day_v = '1995-01-01', @today='2021-01-31';
+exec  U_First_Time_Fill_U_Fact_Comments @first_day_v = '1995-01-01', @today='2020-10-10';
 
 select * from U_Fact_Comments
 select * from U_Fact_Comments_Temp
-
 --*************************************************************************************
 
 
