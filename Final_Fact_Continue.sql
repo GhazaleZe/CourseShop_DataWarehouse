@@ -150,3 +150,4 @@ begin
 	truncate table U_Fact_CommentRating_Temp;
 end 
 exec  U_Fill_U_Fact_CommentRating  @first_day_v = '2020-11-12', @today='2021-01-31';
+
