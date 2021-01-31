@@ -54,3 +54,24 @@ create table U_Fact_Comments_Temp(
 	comment_text nvarchar(MAX)
 );
 
+create table U_Fact_CommentRating(
+	[commenter_user_id] int,
+	[voter_user_id] int,
+	course_key int,
+	course_id int,
+	time_key nvarchar(100),
+	comment_id int,
+	was_it_helpful Bit,
+	description_WasItHelpful nvarchar(30)
+);
+
+create table U_Fact_CommentRating_Temp(
+	[commenter_user_id] int,
+	[voter_user_id] int,
+	course_key int,
+	course_id int,
+	time_key nvarchar(100),
+	comment_id int,
+	was_it_helpful Bit,
+	description_WasItHelpful nvarchar(30)
+);
