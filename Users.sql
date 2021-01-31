@@ -150,14 +150,6 @@ exec U_Fill_User_rating_fact @today = '2020-12-20';
 
 --*******************************************************************************
 
-create table U_Fact_Comments(
-	[user_id] int,
-	course_key int,
-	course_id int,
-	time_key nvarchar(100),
-	comment_id int,
-
-);
 
 CREATE or Alter PROCEDURE U_First_Time_Fill_U_Fact_Comments
 as

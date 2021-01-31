@@ -44,3 +44,13 @@ create table U_Fact_Comments(
 	comment_id int,
 	comment_text nvarchar(MAX)
 );
+
+create table U_Fact_Comments_Temp(
+	[user_id] int,
+	course_key int,
+	course_id int,
+	time_key nvarchar(100),
+	comment_id int,
+	comment_text nvarchar(MAX)
+);
+
