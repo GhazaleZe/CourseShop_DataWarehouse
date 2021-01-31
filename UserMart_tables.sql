@@ -75,3 +75,4 @@ create table U_Fact_CommentRating_Temp(
 	was_it_helpful Bit,
 	description_WasItHelpful nvarchar(30)
 );
+
