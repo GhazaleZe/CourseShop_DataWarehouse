@@ -370,9 +370,8 @@ select * from U_Fact_CommentRating where comment_id=24997 and voter_user_id=917;
 
 --truncate table U_Fact_CommentRating;
 --**********************************************************************************
-
  
-CREATE or Alter PROCEDURE U_Fact_InfluentialUsers_Acc @first_day_v Date,@today Date 
+CREATE or Alter PROCEDURE U_First_Time_Fill_Fact_InfluentialUsers_Acc @first_day_v Date,@today Date 
 as
 begin
 	truncate table U_Fact_InfluentialUsers_Acc;
@@ -389,27 +388,47 @@ begin
 
 		else 
 		begin
-			insert into DataWarehouse.dbo.U_Fact_Comments_Temp([user_id],course_id,course_key,time_key,comment_id,comment_text) 
-			select staging_area.dbo.Comment.[user_id] ,staging_area.dbo.Comment.course_id , 
-			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.Comment.course_id ),
-			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.Comment.datetime_created)), staging_area.dbo.Comment.comment_id, staging_area.dbo.Comment.comment_text
-			from staging_area.dbo.Comment
-			where convert(date,staging_area.dbo.Comment.datetime_created)= @passing;
+			--insert a day from Rating
+			insert into DataWarehouse.dbo.U_Fact_CommentRating_Temp2(commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,was_it_helpful ,description_WasItHelpful) 
+			select commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,was_it_helpful ,description_WasItHelpful 
+			from DataWarehouse.dbo.U_Fact_CommentRating
+			where (select FullDateAlternateKey from DataWarehouse.dbo.S_Dim_Date where DataWarehouse.dbo.U_Fact_CommentRating.time_key=DataWarehouse.dbo.S_Dim_Date.TimeKey)=@passing;
+			--add this day to previous days
+			 
+			with t(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful)
+			as(
+			select commenter_user_id,COUNT(commenter_user_id),COUNT(was_it_helpful),COUNT(CASE was_it_helpful When 1 THEN 1 ELSE Null END)
+			from DataWarehouse.dbo.U_Fact_CommentRating_Temp2
+			group by commenter_user_id)
+			--insert into  U_Fact_InfluentialUsers_Acc_Temp(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
+			select U_Fact_InfluentialUsers_Acc.commenter_user_id,U_Fact_InfluentialUsers_Acc.sum_of_comments+t.sum_of_comments
+			,U_Fact_InfluentialUsers_Acc.sum_of_Feedbacks+t.sum_of_comments,U_Fact_InfluentialUsers_Acc.sum_of_WasItHelpful+t.sum_of_WasItHelpful
+			from t,U_Fact_InfluentialUsers_Acc 
+			where t.commenter_user_id= DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc.commenter_user_id;
+			select * from U_Fact_InfluentialUsers_Acc_Temp;
 
-			insert into DataWarehouse.dbo. U_Fact_Comments([user_id],course_id,course_key,time_key,comment_id,comment_text) 
-			select [user_id],course_id,course_key,time_key,comment_id,comment_text from DataWarehouse.dbo.U_Fact_Comments_Temp;
+			insert into U_Fact_InfluentialUsers_Acc(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
+			select commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful from U_Fact_InfluentialUsers_Acc_Temp;
 
-			if (select COUNT(*) from DataWarehouse.dbo.U_Fact_Comments_Temp ) > 0
+			if (select COUNT(*) from U_Fact_InfluentialUsers_Acc_Temp ) > 0
 			begin
 				insert into DataWarehouse.dbo.U_UsersMart_log (number_of_rows,time_when ,full_time ,fact_name ,[action] )
-				values ((select COUNT(*) from DataWarehouse.dbo.U_Fact_Comments_Temp),@passing,GETDATE(),'U_Fact_Comments','insert first time');
+				values ((select COUNT(*) from U_Fact_InfluentialUsers_Acc_Temp),@passing,GETDATE(),'U_Fact_InfluentialUsers_Acc','insert first time');
 			end
-			truncate table U_Fact_Comments_Temp;
-			set @passing=dateadd(day,1,@passing);
-			
-			
+			truncate table U_Fact_InfluentialUsers_Acc_Temp;
+			truncate table DataWarehouse.dbo.U_Fact_CommentRating_Temp2;
+			set @passing=dateadd(day,1,@passing);	
 
 		end
 	end
 end 
+
+select * from U_Fact_InfluentialUsers_Acc;
+exec  U_First_Time_Fill_Fact_InfluentialUsers_Acc  @first_day_v = '2020-11-01', @today='2020-11-11';
+
+select commenter_user_id,COUNT(commenter_user_id),
+COUNT(was_it_helpful) as NumberOfVote,COUNT(CASE was_it_helpful When 1 THEN 1 ELSE Null END)
+from DataWarehouse.dbo.U_Fact_CommentRating
+group by comment_id,commenter_user_id
+order by  commenter_user_id
 

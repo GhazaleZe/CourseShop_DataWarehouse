@@ -102,3 +102,11 @@ create table U_Fact_InfluentialUsers_Acc_Temp (
 	sum_of_Feedbacks int,
 	sum_of_WasItHelpful int
 )
+
+create table U_Fact_InfluentialUsers_Acc_Temp2 (
+	commenter_user_id int,
+	sum_of_comments int,
+	sum_of_Feedbacks int,
+	sum_of_WasItHelpful int
+)
+

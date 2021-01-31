@@ -13,4 +13,4 @@ where comment_id>24990
 
 select * from CommentVote inner join Comment on Comment.comment_id=CommentVote.comment_id
 
-select * from staging_area.dbo.CommentVote
+select * from staging_area.dbo.CommentVote where datetime_created > '2020-11-12'
