@@ -11,7 +11,7 @@ begin
 	declare @timekey nvarchar(255);
 	set @passing = dateadd(day,1,@lastInFact);
 	--set @today =GETDATE();
-	while (@today> @passing)
+	while (@today>= @passing)
 	begin
 
 		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @today))

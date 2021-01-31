@@ -15,7 +15,7 @@ begin
 	set @passing = @first_day_v;
 	set @today =convert(date,GETDATE());
 	--select @passing,@today
-	while @today> @passing
+	while @today>= @passing
 	begin
 
 		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @passing))
