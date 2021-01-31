@@ -97,3 +97,56 @@ select * from U_Fact_Comments
 select * from U_UsersMart_log;
 
 --*******************************************************************
+
+--********************************************************************************
+
+
+CREATE or Alter PROCEDURE U_Fill_U_Fact_CommentRating @first_day_v Date,@today Date 
+as
+begin
+	truncate table U_Fact_CommentRating_Temp;
+	truncate table U_Fact_CommentRating_Temp2;
+	declare @passing Date;
+	declare @timekey nvarchar(255);
+	set @passing = @first_day_v;
+	insert into DataWarehouse.dbo.U_Fact_CommentRating_Temp(commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,datetime_created,was_it_helpful ,description_WasItHelpful) 
+			select staging_area.dbo.Comment.[user_id] ,staging_area.dbo.CommentVote.voter_user_id,staging_area.dbo.Comment.course_id , 
+			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.Comment.course_id ),
+			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.CommentVote.datetime_created)), staging_area.dbo.CommentVote.comment_id,staging_area.dbo.CommentVote.datetime_created,staging_area.dbo.CommentVote.was_it_helpful, 
+			case
+				when was_it_helpful = 1 then 'Helpful'
+				when was_it_helpful = 0 then 'Not Helpful'
+			end
+			from staging_area.dbo.Comment inner join staging_area.dbo.CommentVote on staging_area.dbo.Comment.comment_id = staging_area.dbo.CommentVote.comment_id;
+	while @today >= @passing
+	begin
+
+		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @passing))
+		begin
+			set @passing=dateadd(day,1,@passing);
+		end
+
+		else 
+		begin
+			
+			insert into DataWarehouse.dbo.U_Fact_CommentRating_Temp2(commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,was_it_helpful ,description_WasItHelpful) 
+			select commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,was_it_helpful ,description_WasItHelpful from DataWarehouse.dbo.U_Fact_CommentRating_Temp
+			where convert(date,DataWarehouse.dbo.U_Fact_CommentRating_Temp.datetime_created) = @passing;
+			insert into DataWarehouse.dbo. U_Fact_CommentRating(commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,was_it_helpful ,description_WasItHelpful) 
+			select commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,was_it_helpful ,description_WasItHelpful from DataWarehouse.dbo.U_Fact_CommentRating_Temp2;
+
+			if (select COUNT(*) from DataWarehouse.dbo.U_Fact_CommentRating_Temp2 ) > 0
+			begin
+				insert into DataWarehouse.dbo.U_UsersMart_log (number_of_rows,time_when ,full_time ,fact_name ,[action] )
+				values ((select COUNT(*) from DataWarehouse.dbo.U_Fact_CommentRating_Temp2),@passing,GETDATE(),'U_Fact_CommentRating','insert');
+			end
+			
+			truncate table U_Fact_CommentRating_Temp2;
+			set @passing=dateadd(day,1,@passing);
+			
+
+		end
+	end
+	truncate table U_Fact_CommentRating_Temp;
+end 
+exec  U_Fill_U_Fact_CommentRating  @first_day_v = '2020-11-12', @today='2021-01-31';
