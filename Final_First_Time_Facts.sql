@@ -159,6 +159,62 @@ exec  U_First_Time_Fill_U_Fact_CommentRating  @first_day_v = '2020-11-01', @toda
 
 select * from U_Fact_CommentRating;
 
+--**********************************************************************************
+ 
+CREATE or Alter PROCEDURE U_First_Time_Fill_Fact_InfluentialUsers_Acc @first_day_v Date,@today Date 
+as
+begin
+	truncate table U_Fact_InfluentialUsers_Acc;
+	declare @passing Date;
+	declare @timekey nvarchar(255);
+	set @passing = @first_day_v;
+	while @today>= @passing
+	begin
+
+		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @passing))
+		begin
+			set @passing=dateadd(day,1,@passing);
+		end
+
+		else 
+		begin
+			--insert a day from Rating
+			insert into DataWarehouse.dbo.U_Fact_CommentRating_Temp2(commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,was_it_helpful ,description_WasItHelpful) 
+			select commenter_user_id,voter_user_id,course_id,course_key,time_key,comment_id,was_it_helpful ,description_WasItHelpful 
+			from DataWarehouse.dbo.U_Fact_CommentRating
+			where (select FullDateAlternateKey from DataWarehouse.dbo.S_Dim_Date where DataWarehouse.dbo.U_Fact_CommentRating.time_key=DataWarehouse.dbo.S_Dim_Date.TimeKey)=@passing;
+			--add this day to previous days
+			 
+			with t(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful)
+			as(
+			select commenter_user_id,COUNT(commenter_user_id),COUNT(was_it_helpful),COUNT(CASE was_it_helpful When 1 THEN 1 ELSE Null END)
+			from DataWarehouse.dbo.U_Fact_CommentRating_Temp2
+			group by commenter_user_id)
+			insert into  U_Fact_InfluentialUsers_Acc_Temp(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
+			select t.commenter_user_id,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_comments)+t.sum_of_comments
+			,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_Feedbacks)+t.sum_of_comments,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_WasItHelpful)+t.sum_of_WasItHelpful
+			from t left join U_Fact_InfluentialUsers_Acc 
+			ON t.commenter_user_id= DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc.commenter_user_id;
+
+			insert into U_Fact_InfluentialUsers_Acc(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
+			select commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful from U_Fact_InfluentialUsers_Acc_Temp;
+
+			if (select COUNT(*) from U_Fact_InfluentialUsers_Acc_Temp ) > 0
+			begin
+				insert into DataWarehouse.dbo.U_UsersMart_log (number_of_rows,time_when ,full_time ,fact_name ,[action] )
+				values ((select COUNT(*) from U_Fact_InfluentialUsers_Acc_Temp),@passing,GETDATE(),'U_Fact_InfluentialUsers_Acc','insert first time');
+			end
+			truncate table U_Fact_InfluentialUsers_Acc_Temp;
+			truncate table DataWarehouse.dbo.U_Fact_CommentRating_Temp2;
+			set @passing=dateadd(day,1,@passing);	
+
+		end
+	end
+end 
+
+select * from U_Fact_InfluentialUsers_Acc;
+exec  U_First_Time_Fill_Fact_InfluentialUsers_Acc  @first_day_v = '2020-11-01', @today='2020-11-11';
+
 
 
 

@@ -400,12 +400,11 @@ begin
 			select commenter_user_id,COUNT(commenter_user_id),COUNT(was_it_helpful),COUNT(CASE was_it_helpful When 1 THEN 1 ELSE Null END)
 			from DataWarehouse.dbo.U_Fact_CommentRating_Temp2
 			group by commenter_user_id)
-			--insert into  U_Fact_InfluentialUsers_Acc_Temp(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
-			select U_Fact_InfluentialUsers_Acc.commenter_user_id,U_Fact_InfluentialUsers_Acc.sum_of_comments+t.sum_of_comments
-			,U_Fact_InfluentialUsers_Acc.sum_of_Feedbacks+t.sum_of_comments,U_Fact_InfluentialUsers_Acc.sum_of_WasItHelpful+t.sum_of_WasItHelpful
-			from t,U_Fact_InfluentialUsers_Acc 
-			where t.commenter_user_id= DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc.commenter_user_id;
-			select * from U_Fact_InfluentialUsers_Acc_Temp;
+			insert into  U_Fact_InfluentialUsers_Acc_Temp(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
+			select t.commenter_user_id,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_comments)+t.sum_of_comments
+			,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_Feedbacks)+t.sum_of_comments,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_WasItHelpful)+t.sum_of_WasItHelpful
+			from t left join U_Fact_InfluentialUsers_Acc 
+			ON t.commenter_user_id= DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc.commenter_user_id;
 
 			insert into U_Fact_InfluentialUsers_Acc(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
 			select commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful from U_Fact_InfluentialUsers_Acc_Temp;
