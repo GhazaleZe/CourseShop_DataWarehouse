@@ -3,14 +3,13 @@ go
 
 -- transaction fact for user ratings
 
-drop table U_Fact_UserRating
+
 create table U_Fact_UserRating
 (
 	[user_id] int,
 	course_key int,
 	course_id int,
 	time_key nvarchar(100),
-	full_time Date,
 	rating decimal(3, 2),
 
 
@@ -22,11 +21,9 @@ create table U_user_rating_temp
 	course_key int,
 	course_id int,
 	time_key nvarchar(100),
-	full_time Date,
 	rating decimal(3, 2)
 
 );
-
 
 
 create table U_UsersMart_log
@@ -39,25 +36,20 @@ create table U_UsersMart_log
 	[action] nvarchar(50)
 );
 
-select [user_id],course_id,course_key,time_key,full_time,rating from U_Fact_UserRating order by [user_id];
+select [user_id],course_id,course_key,time_key,rating from U_Fact_UserRating order by [user_id];
 Select * from S_Dim_Date
 select * from U_user_rating_temp
 
-CREATE or Alter PROCEDURE U_First_Time_Fill_User_rating_fact
+
+
+CREATE or Alter PROCEDURE U_First_Time_Fill_User_rating_fact  @first_day_v Date,@today Date 
 as
 begin
 	truncate table U_Fact_UserRating;
-	declare @first_day Datetime;
-	declare @first_day_v Date;
-	set @first_day = (select min(staging_area.dbo.UserOnlineCourse.datetime_of_rating) from staging_area.dbo.UserOnlineCourse );
-	set @first_day_v = convert(date,@first_day);
 	declare @passing Date;
-	declare @today Date;
 	declare @timekey nvarchar(255);
 	set @passing = @first_day_v;
-	set @today =convert(date,GETDATE());
-	--select @passing,@today
-	while @today> @passing
+	while @today>= @passing
 	begin
 
 		if (not exists (select * from DataWarehouse.dbo.[S_Dim_Date] where DataWarehouse.dbo.[S_Dim_Date].FullDateAlternateKey = @passing))
@@ -67,15 +59,15 @@ begin
 
 		else 
 		begin
-			insert into DataWarehouse.dbo.U_user_rating_temp([user_id],course_id,course_key,time_key,full_time,rating) 
+			insert into DataWarehouse.dbo.U_user_rating_temp([user_id],course_id,course_key,time_key,rating) 
 			select staging_area.dbo.UserOnlineCourse.[user_id] ,staging_area.dbo.UserOnlineCourse.course_id , 
 			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.UserOnlineCourse.course_id ),
-			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.UserOnlineCourse.datetime_of_rating)) ,convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating) , staging_area.dbo.UserOnlineCourse.rating_num
+			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.UserOnlineCourse.datetime_of_rating)), staging_area.dbo.UserOnlineCourse.rating_num
 			from staging_area.dbo.UserOnlineCourse
 			where convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating)= @passing;
 
-			insert into DataWarehouse.dbo.U_Fact_UserRating([user_id],course_id,course_key,time_key,full_time,rating) 
-			select [user_id],course_id,course_key,time_key,full_time,rating from DataWarehouse.dbo.U_user_rating_temp;
+			insert into DataWarehouse.dbo.U_Fact_UserRating([user_id],course_id,course_key,time_key,rating) 
+			select [user_id],course_id,course_key,time_key,rating from DataWarehouse.dbo.U_user_rating_temp;
 
 			if (select COUNT(*) from DataWarehouse.dbo.U_user_rating_temp ) > 0
 			begin
@@ -91,27 +83,22 @@ begin
 	end
 end
 
-exec U_First_Time_Fill_User_rating_fact;
+exec U_First_Time_Fill_User_rating_fact @first_day_v = '2020-12-01', @today='2020-12-15';
 
 
 select * from U_UsersMart_log;
-
 truncate table U_UsersMart_log;
-
 select * from S_Dim_Course
+select * from U_Fact_UserRating
+select * from staging_area.dbo.UserOnlineCourse
 
 -- *******************************************************
 
-CREATE or Alter PROCEDURE U_Fill_User_rating_fact @today Date
+CREATE or Alter PROCEDURE U_Fill_User_rating_fact  @first_day_v Date,@today Date 
 as
 begin
-	declare @lastInFact Date;
-	set @lastInFact = (select max(DataWarehouse.dbo.U_Fact_UserRating.full_time) from DataWarehouse.dbo.U_Fact_UserRating);
 	declare @passing Date;
-	--declare @today Datetime;
 	declare @timekey nvarchar(255);
-	set @passing = dateadd(day,1,@lastInFact);
-	--set @today =GETDATE();
 	while (@today> @passing)
 	begin
 
@@ -122,15 +109,15 @@ begin
 
 		else 
 		begin
-			insert into DataWarehouse.dbo.U_user_rating_temp([user_id],course_id,course_key,time_key,full_time,rating) 
+			insert into DataWarehouse.dbo.U_user_rating_temp([user_id],course_id,course_key,time_key,rating) 
 			select staging_area.dbo.UserOnlineCourse.[user_id] ,staging_area.dbo.UserOnlineCourse.course_id , 
 			(select course_key from DataWarehouse.dbo.S_Dim_Course where DataWarehouse.dbo.S_Dim_Course.course_id = staging_area.dbo.UserOnlineCourse.course_id),
-			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.UserOnlineCourse.datetime_of_rating)) ,staging_area.dbo.UserOnlineCourse.datetime_of_rating , staging_area.dbo.UserOnlineCourse.rating_num
+			(select DataWarehouse.dbo.S_Make_TimeKey (staging_area.dbo.UserOnlineCourse.datetime_of_rating)) , staging_area.dbo.UserOnlineCourse.rating_num
 			from staging_area.dbo.UserOnlineCourse
 			where convert(date,staging_area.dbo.UserOnlineCourse.datetime_of_rating)= @passing;
 
-			insert into DataWarehouse.dbo.U_Fact_UserRating([user_id],course_id,course_key,time_key,full_time,rating) 
-			select [user_id],course_id,course_key,time_key,full_time,rating from DataWarehouse.dbo.U_user_rating_temp;
+			insert into DataWarehouse.dbo.U_Fact_UserRating([user_id],course_id,course_key,time_key,rating) 
+			select [user_id],course_id,course_key,time_key,rating from DataWarehouse.dbo.U_user_rating_temp;
 
 			if (select COUNT(*) from DataWarehouse.dbo.U_user_rating_temp ) > 0
 			begin
@@ -146,7 +133,7 @@ begin
 	end
 end
 
-exec U_Fill_User_rating_fact @today = '2020-12-20';
+exec U_Fill_User_rating_fact @first_day_v = '2020-12-16', @today='2020-12-20';
 
 --*******************************************************************************
 

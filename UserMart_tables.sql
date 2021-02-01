@@ -7,7 +7,6 @@ create table U_Fact_UserRating
 	course_key int,
 	course_id int,
 	time_key nvarchar(100),
-	full_time Date,
 	rating decimal(3, 2),
 
 
@@ -19,7 +18,6 @@ create table U_user_rating_temp
 	course_key int,
 	course_id int,
 	time_key nvarchar(100),
-	full_time Date,
 	rating decimal(3, 2)
 
 );
