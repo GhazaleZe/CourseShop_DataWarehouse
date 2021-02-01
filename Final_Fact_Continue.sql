@@ -176,8 +176,8 @@ begin
 			from DataWarehouse.dbo.U_Fact_CommentRating_Temp2
 			group by commenter_user_id)
 			insert into  U_Fact_InfluentialUsers_Acc_Temp(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
-			select t.commenter_user_id,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_comments)+t.sum_of_comments
-			,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_Feedbacks)+t.sum_of_comments,ISNULL(0,U_Fact_InfluentialUsers_Acc.sum_of_WasItHelpful)+t.sum_of_WasItHelpful
+			select t.commenter_user_id,ISNULL(U_Fact_InfluentialUsers_Acc.sum_of_comments,0)+t.sum_of_comments
+			,ISNULL(U_Fact_InfluentialUsers_Acc.sum_of_Feedbacks,0)+t.sum_of_comments,ISNULL(U_Fact_InfluentialUsers_Acc.sum_of_WasItHelpful,0)+t.sum_of_WasItHelpful
 			from t left join U_Fact_InfluentialUsers_Acc 
 			ON t.commenter_user_id= DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc.commenter_user_id;
 
