@@ -193,8 +193,20 @@ begin
 			from t left join U_Fact_InfluentialUsers_Acc 
 			ON t.commenter_user_id= DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc.commenter_user_id;
 
+	
 			insert into U_Fact_InfluentialUsers_Acc(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
-			select commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful from U_Fact_InfluentialUsers_Acc_Temp;
+			select commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful 
+			from U_Fact_InfluentialUsers_Acc_Temp
+			where commenter_user_id Not IN (select U_Fact_InfluentialUsers_Acc.commenter_user_id from DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc);
+
+			update U_Fact_InfluentialUsers_Acc
+			set U_Fact_InfluentialUsers_Acc.sum_of_comments=U_Fact_InfluentialUsers_Acc_Temp.sum_of_comments,
+			U_Fact_InfluentialUsers_Acc.sum_of_Feedbacks=U_Fact_InfluentialUsers_Acc_Temp.sum_of_Feedbacks,
+			U_Fact_InfluentialUsers_Acc.sum_of_WasItHelpful=U_Fact_InfluentialUsers_Acc_Temp.sum_of_WasItHelpful
+			from U_Fact_InfluentialUsers_Acc_Temp
+			where U_Fact_InfluentialUsers_Acc.commenter_user_id IN (select U_Fact_InfluentialUsers_Acc_Temp.commenter_user_id from DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc_Temp)
+			and U_Fact_InfluentialUsers_Acc.commenter_user_id=U_Fact_InfluentialUsers_Acc_Temp.commenter_user_id;
+		
 
 			if (select COUNT(*) from U_Fact_InfluentialUsers_Acc_Temp ) > 0
 			begin

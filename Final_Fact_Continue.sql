@@ -92,7 +92,6 @@ select * from U_Fact_Comments
 
 select * from U_UsersMart_log;
 
---*******************************************************************
 
 --********************************************************************************
 
@@ -148,7 +147,7 @@ end
 exec  U_Fill_U_Fact_CommentRating  @first_day_v = '2020-11-12', @today='2021-01-31';
 
 --*********************************************************************************
-CREATE or Alter PROCEDURE U_First_Fact_InfluentialUsers_Acc @first_day_v Date,@today Date 
+CREATE or Alter PROCEDURE U_Fill_Fact_InfluentialUsers_Acc @first_day_v Date,@today Date 
 as
 begin
 	declare @passing Date;
@@ -182,8 +181,20 @@ begin
 			from t left join U_Fact_InfluentialUsers_Acc 
 			ON t.commenter_user_id= DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc.commenter_user_id;
 
-			insert into U_Fact_InfluentialUsers_Acc(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
-			select commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful from U_Fact_InfluentialUsers_Acc_Temp;
+				insert into U_Fact_InfluentialUsers_Acc(commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful) 
+			select commenter_user_id,sum_of_comments,sum_of_Feedbacks,sum_of_WasItHelpful 
+			from U_Fact_InfluentialUsers_Acc_Temp
+			where commenter_user_id Not IN (select U_Fact_InfluentialUsers_Acc.commenter_user_id from DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc);
+
+			update U_Fact_InfluentialUsers_Acc
+			set U_Fact_InfluentialUsers_Acc.sum_of_comments=U_Fact_InfluentialUsers_Acc_Temp.sum_of_comments,
+			U_Fact_InfluentialUsers_Acc.sum_of_Feedbacks=U_Fact_InfluentialUsers_Acc_Temp.sum_of_Feedbacks,
+			U_Fact_InfluentialUsers_Acc.sum_of_WasItHelpful=U_Fact_InfluentialUsers_Acc_Temp.sum_of_WasItHelpful
+			from U_Fact_InfluentialUsers_Acc_Temp
+			where U_Fact_InfluentialUsers_Acc.commenter_user_id IN (select U_Fact_InfluentialUsers_Acc_Temp.commenter_user_id from DataWarehouse.dbo.U_Fact_InfluentialUsers_Acc_Temp)
+			and U_Fact_InfluentialUsers_Acc.commenter_user_id=U_Fact_InfluentialUsers_Acc_Temp.commenter_user_id;
+
+			
 
 			if (select COUNT(*) from U_Fact_InfluentialUsers_Acc_Temp ) > 0
 			begin
@@ -198,7 +209,7 @@ begin
 	end
 end 
 
-exec  U_First_Fact_InfluentialUsers_Acc  @first_day_v = '2020-11-12', @today='2021-01-31';
+exec  U_Fill_Fact_InfluentialUsers_Acc  @first_day_v = '2020-11-12', @today='2021-01-31';
 
  select * from U_Fact_InfluentialUsers_Acc;
 
