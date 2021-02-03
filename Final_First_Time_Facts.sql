@@ -156,6 +156,8 @@ exec  U_First_Time_Fill_U_Fact_CommentRating  @first_day_v = '2020-11-01', @toda
 
 select * from U_Fact_CommentRating;
 
+select * from U_UsersMart_log
+
 --**********************************************************************************
  
 CREATE or Alter PROCEDURE U_First_Time_Fill_Fact_InfluentialUsers_Acc @first_day_v Date,@today Date 
